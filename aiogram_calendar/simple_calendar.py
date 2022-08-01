@@ -15,12 +15,14 @@ class SimpleCalendar:
     async def start_calendar(
         self,
         year: int = datetime.now().year,
-        month: int = datetime.now().month
+        month: int = datetime.now().month,
+        locale: str = "en_US",
     ) -> InlineKeyboardMarkup:
         """
         Creates an inline keyboard with the provided year and month
         :param int year: Year to use in the calendar, if None the current year is used.
         :param int month: Month to use in the calendar, if None the current month is used.
+        :param str locale: Locale for month and day names, if None en_US is used.
         :return: Returns InlineKeyboardMarkup object with the calendar.
         """
         inline_kb = InlineKeyboardMarkup(row_width=7)
@@ -31,25 +33,29 @@ class SimpleCalendar:
             "<<",
             callback_data=calendar_callback.new("PREV-YEAR", year, month, 1)
         ))
-        inline_kb.insert(InlineKeyboardButton(
-            f'{calendar.month_name[month]} {str(year)}',
-            callback_data=ignore_callback
-        ))
+        with calendar.different_locale(locale):
+            inline_kb.insert(InlineKeyboardButton(
+                f'{calendar.month_name[month]} {str(year)}',
+                callback_data=ignore_callback
+            ))
         inline_kb.insert(InlineKeyboardButton(
             ">>",
             callback_data=calendar_callback.new("NEXT-YEAR", year, month, 1)
         ))
         # Second row - Week Days
         inline_kb.row()
-        for day in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]:
-            inline_kb.insert(InlineKeyboardButton(day, callback_data=ignore_callback))
+        with calendar.different_locale(locale):
+            for day_index in range(7):
+                inline_kb.insert(
+                    InlineKeyboardButton(calendar.day_abbr[day_index], callback_data=ignore_callback)
+                )
 
         # Calendar rows - Days of month
         month_calendar = calendar.monthcalendar(year, month)
         for week in month_calendar:
             inline_kb.row()
             for day in week:
-                if(day == 0):
+                if day == 0:
                     inline_kb.insert(InlineKeyboardButton(" ", callback_data=ignore_callback))
                     continue
                 inline_kb.insert(InlineKeyboardButton(
